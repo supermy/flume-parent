@@ -232,7 +232,7 @@ public class TaildirSource extends AbstractSource implements
         final AtomicInteger ai = new AtomicInteger(0);
 //    final CountDownLatch cdl = new CountDownLatch(threadNum);
         long s = System.currentTimeMillis();
-        long scnt = sourceCounter.getAppendBatchReceivedCount();
+//        long scnt = sourceCounter.getAppendBatchReceivedCount();
 
         Status status = Status.READY;
         try {
@@ -246,9 +246,9 @@ public class TaildirSource extends AbstractSource implements
                 final TailFile tf = reader.getTailFiles().get(inode);//需要确认是否按 filegroup 获取
                 if (tf.needTail()) {
 
-                    Future future = executorService.submit(new Runnable() {
+                    Future<String> future = executorService.submit(new Callable<String>() {
                         @Override
-                        public void run() {
+                        public String call() {
 
                             try {
                                 tailFileProcess(tf, true);
@@ -257,15 +257,13 @@ public class TaildirSource extends AbstractSource implements
                                 e.printStackTrace();
                             } catch (InterruptedException e) {
                                 e.printStackTrace();
+                            }finally {
+                                return "success";
                             }
-
-//              cdl.countDown();
-
                         }
 
                     });
                     results.add(future);
-//                    future.get();
                 }
             }
 
@@ -274,15 +272,9 @@ public class TaildirSource extends AbstractSource implements
             }
 
 
-//      try {
-//        cdl.await();
-//      } catch (InterruptedException e) {
-//        e.printStackTrace();
-//      }
-
             long t = System.currentTimeMillis() - s;
 
-            long ecnt = sourceCounter.getAppendBatchReceivedCount();
+            //long ecnt = sourceCounter.getAppendBatchReceivedCount();
 
 //            int i = ai.intValue()==0?1:ai.intValue();//防止0被除
 
@@ -290,10 +282,10 @@ public class TaildirSource extends AbstractSource implements
 //            long appendBatchReceivedCount = sourceCounter.getAppendBatchReceivedCount();
 
 
-            logger.info("{}个线程，处理完成的数据量：{}", results.size(),(ecnt-scnt));
-            logger.info("{}个线程，每秒处理的数据量：{}", results.size(),(ecnt-scnt) / (t / 1000));
+            logger.info("{}个线程，处理完成的数据量：{}", results.size(),ai.intValue());
+            logger.info("{}个线程，每秒处理的数据量：{}", results.size(),ai.intValue() / (t / 1000));
 
-            logger.info("处理数据的总数量：{}", ecnt);
+            logger.info("处理数据的总数量：{}", ai.intValue());
 
             closeTailFiles();
             try {
