@@ -118,7 +118,8 @@ public class TaildirSource extends AbstractSource implements
                 writePosInitDelay, writePosInterval, TimeUnit.MILLISECONDS);
 
 
-    executorService = Executors.newFixedThreadPool(threadPool);
+        executorService = Executors.newFixedThreadPool(threadNum);//最多10个线程同时工作；不确认 filegroup 的文件列表方式；
+//        executorService = Executors.newFixedThreadPool(threadPool);
 //        executorService = Executors.newCachedThreadPool();
 
 
@@ -231,16 +232,18 @@ public class TaildirSource extends AbstractSource implements
         final AtomicInteger ai = new AtomicInteger(0);
 //    final CountDownLatch cdl = new CountDownLatch(threadNum);
         long s = System.currentTimeMillis();
+        long scnt = sourceCounter.getAppendBatchReceivedCount();
 
         Status status = Status.READY;
         try {
             existingInodes.clear();
             existingInodes.addAll(reader.updateTailFiles());
 
+            //获取线程句柄
             List<Future<String>> results = new ArrayList<Future<String>>();
 
             for (long inode : existingInodes) {
-                final TailFile tf = reader.getTailFiles().get(inode);
+                final TailFile tf = reader.getTailFiles().get(inode);//需要确认是否按 filegroup 获取
                 if (tf.needTail()) {
 
                     Future future = executorService.submit(new Runnable() {
@@ -279,9 +282,18 @@ public class TaildirSource extends AbstractSource implements
 
             long t = System.currentTimeMillis() - s;
 
-            logger.info("处理完成的数据量：{}", ai.intValue());
-            logger.info("每秒处理的数据量：{}", ai.intValue() / (t / 1000));
+            long ecnt = sourceCounter.getAppendBatchReceivedCount();
 
+//            int i = ai.intValue()==0?1:ai.intValue();//防止0被除
+
+//            sourceCounter.incrementAppendBatchReceivedCount();
+//            long appendBatchReceivedCount = sourceCounter.getAppendBatchReceivedCount();
+
+
+            logger.info("{}个线程，处理完成的数据量：{}", results.size(),(ecnt-scnt));
+            logger.info("{}个线程，每秒处理的数据量：{}", results.size(),(ecnt-scnt) / (t / 1000));
+
+            logger.info("处理数据的总数量：{}", ecnt);
 
             closeTailFiles();
             try {
