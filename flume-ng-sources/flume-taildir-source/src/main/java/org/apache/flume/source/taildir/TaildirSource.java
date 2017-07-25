@@ -272,7 +272,8 @@ public class TaildirSource extends AbstractSource implements
             }
 
 
-            long t = System.currentTimeMillis() - s;
+            long t = (System.currentTimeMillis() - s)==0?1:(System.currentTimeMillis() - s);
+            long cnt = ai.intValue()==0 ?1:ai.intValue();
 
             //long ecnt = sourceCounter.getAppendBatchReceivedCount();
 
@@ -283,7 +284,7 @@ public class TaildirSource extends AbstractSource implements
 
 
             logger.info("{}个线程，处理完成的数据量：{}", results.size(),ai.intValue());
-            logger.info("{}个线程，每秒处理的数据量：{}", results.size(),ai.intValue() / (t / 1000));
+            logger.info("{}个线程，每秒处理的数据量：{}", results.size(),cnt / (t / 1000));
 
             logger.info("处理数据的总数量：{}", ai.intValue());
 
